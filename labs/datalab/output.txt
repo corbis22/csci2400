@@ -1,0 +1,5 @@
+Test evenBits() failed.
+  Gives 340[0x154].  Should be 1431655765[0x55555555]
+Test evenBits score: 0.00/1.00
+Overall correctness score: 0.00/1.00
+1 errors encountered.

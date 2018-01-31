@@ -1,0 +1,15 @@
+X evenBits
+X minusOne
+X copyLSB
+X divpwr2
+X getByte
+X anyOddBit
+X isNegative
+X isAsciiDigit
+_ fitsBits
+_ subOK
+X conditional
+_ howManyBits
+_ isNonZero
+X absVal
+_ isPower2
