@@ -180,7 +180,7 @@ int evenBits(void) {
  *   Rating: 1
  */
 int minusOne(void) {
-  return 0xFF | (0xFF<<8) | (0xFF<<16) | (0xFF<<24);
+  return ~0;
 }
 /*
  * copyLSB - set all bits of result to least significant bit of x
@@ -243,7 +243,7 @@ int anyOddBit(int x) {
  *   Rating: 2
  */
 int isNegative(int x) {
-  int y = x>>31;
+    int y = x>>31;
     return y & 0x1;
 }
 /*
@@ -275,13 +275,12 @@ int isAsciiDigit(int x) {
  *   Rating: 3
  */
 int fitsBits(int x, int n) {
-  printf("\nn: %d\n", n);
-  printf("x: 0x%X\n", x);
-  int z = (~0x0 << (n + ~0x0)) << 1;
-  printf("z: 0x%x\n", z);
-  int y = x & z;
-  printf("y: 0x%X\n", y);
-  return !y;
+  int field = (~0 << (n + ~0)); //Create a field of 1s to capture all bits outside the n-bit range
+  int y = x & field; // Capture bits
+  int allF = !(y ^ field); // If the captured bits are all 1s, x can still be represented in two's complement
+                           // because these bits just serve to subtract/add from the 32-bit min, which would be lower with less bits
+  // X fits only if the bits outside n are all 0s or all 1s
+  return (!y | allF);
 }
 /*
  * subOK - Determine if can compute x-y without overflow
@@ -297,7 +296,10 @@ int subOK(int x, int y) {
   int neg_y = ~y + 1;
   int diff = x + neg_y;
   int diff_is_neg = (diff >> 31) & 1;
-  return (x_is_neg & y_is_neg) & diff_is_neg;
+  int x_diff_agree = !(x_is_neg ^ diff_is_neg);
+  // The only time overflow has occured is when x and y have different signs,
+  // and x and the result have different signs
+  return !(x_is_neg ^ y_is_neg) | x_diff_agree;
 }
 /*
  * conditional - same as x ? y : z
@@ -339,7 +341,7 @@ int isNonZero(int x) {
   int y = 1;
   int sum = x + y;
   int diff = sum ^ y;
-  return 2;
+  return !!diff;
 }
 /*
  * absVal - absolute value of x
@@ -365,5 +367,9 @@ int absVal(int x) {
  *   Rating: 4
  */
 int isPower2(int x) {
-  return 2;
+  int y = x + ~0; // subtract 1
+  int sp = !x | !(x ^ (1<<31)); // check if x is 0x0 or 0x80000000
+  // if x is a power of 2, subtracting 1 will change the MSB to a 0 and cause the & to fail
+  // for the special cases of 0x0 and 0x80000000, we check to make sure result is 0
+  return !(x & y) ^ sp;
 }
