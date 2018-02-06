@@ -256,14 +256,14 @@ int isNegative(int x) {
  *   Rating: 3
  */
 int isAsciiDigit(int x) {
-  int is30 = (x >> 4) & (x >> 5) & 0x1; // Make sure left nibble matches 0x30
-  int isGr7 = !!(x & 0x8); // Check if right nibble greater than 8
+  int extr = x & (~0 << 4); // Capture the 28 leftmost bits
+  int isGr7 = !!(x & 0x8); // Check if right nibble greater than 7
   int isGr9 = !!(x & 0x6); // Check if right nibble greater than 9
-  // Will return 0 if x does not lead with 0x30,
+  // Will return 0 if there is anything in the leftmost 28 bits other than 0x11,
   // or if the right nibble is greater than 9.
   // Checks the 4th bit and bits 1-3 separately because 1000 and 1001 are both valid,
   // but 1010-1111 are not.
- return is30 & !(isGr7 & isGr9);
+ return !(isGr7 & isGr9) & !(extr ^ 0x11);
 }
 /*
  * fitsBits - return 1 if x can be represented as an
@@ -327,7 +327,77 @@ int conditional(int x, int y, int z) {
  *  Rating: 4
  */
 int howManyBits(int x) {
-    return 2;
+  int is1 = !(x ^ 1); // Check if x is 1 (special case, need to add 1 to bit count
+  int isMin = !(x ^ (0x8 << 28)); // Check if x is the min 32-bit value (0x80000000) (special case, need to add 1 to bit count)
+
+  // --- Convert to absolute value ---
+  int y = x >> 31; // Will fill 1s if negative, 0s if not
+  int p = y & 1; // Need to add 1 if converting from negative to positive
+  // If x<0, will invert bits and add 1
+  // Otherwise returns x
+  x = (x ^ y) + p;
+
+  // --- Check if x is a power of 2 ---
+  int z = x + ~0; // subtract 1
+  int sp = !x | !(x ^ (1<<31)); // check if x is 0x0 or 0x80000000
+  // if x is a power of 2, subtracting 1 will change the MSB to a 0 and cause the & to fail
+  // for the special cases of 0x0 and 0x80000000, we check to make sure result is 0
+  int p2 = !(x & z) ^ sp;
+
+    // Copy MSB over to fill with 1s,
+    // now finding the minimum number of bits just means couting how many 1s we ahve
+    x = x | (x >> 1);
+    x = x | (x >> 2);
+    x = x | (x >> 4);
+    x = x | (x >> 8);
+    x = x | (x >> 16);
+
+    // Create a field to capture pairs of bits
+    int a = 0x55;
+    a = a | (a << 8);
+    a = a | (a << 16);
+
+    // Create a filter to capture groups of 4 bits
+    int b = 0x33;
+    b = b | (b << 8);
+    b = b | (b << 16);
+
+    // Create a filter to capture groups of 8 bits
+    int c = 0x0F;
+    c = c | (c << 8);
+    c = c | (c << 16);
+
+    // Create a filter to capture groups of 16 bits
+    int d = 0xFF | (0xFF << 16);
+
+    // Create a filter to capture each half of the int
+    int hlf = 0xFF | (0xFF << 8);
+
+    int ones_a = x & a; // Grab even bits
+    int ones_b = x & (a << 1); // Grab odd bits
+    x = ones_a + (ones_b >> 1); // Add together to get the number of 1s in each pair
+
+    int twos_a = x & b; // even pairs
+    int twos_b = x & (b << 2); // odd pairs
+    x = twos_a + (twos_b >> 2); // gives number of 1s in each group of 4
+
+    int fours_a = x & c; // even 4s
+    int fours_b = x & (c << 4); // odd 4s
+    x = fours_a + (fours_b >> 4); // number of 1s in each group of 8
+
+    int eights_a = x & d; // even 8s
+    int eights_b = x & (d << 8); // odd 8s
+    x = eights_a + (eights_b >> 8); // gives number of 1s in each half
+
+    int halves_a = x & hlf; // lower half
+    int halves_b = x & (hlf << 16); // upper half
+    x = halves_a + (halves_b >> 16); // gives number of 1s in entire int
+
+    // gives 1 less than the number of bits in most cases, so we add 1.
+    // now gives 1 too many bits if x is a power of 2, so subtract 1 if x is a power of 2
+    // now gives 1 too few bits if x is 1, so add 1 if x is 1
+    // now gives 1 too few bits if x is the minimum value for a signed int, so add 1 if x is min
+    return x + 1 + (~p2 + 1) + is1 + isMin;
 }
 /*
  * isNonZero - Check whether x is nonzero using
@@ -338,10 +408,9 @@ int howManyBits(int x) {
  *   Rating: 4
  */
 int isNonZero(int x) {
-  int y = 1;
-  int sum = x + y;
-  int diff = sum ^ y;
-  return !!diff;
+  int y = x | (~x + 1); // If x is zero, (~x+1) also becomes zero
+  // Leftmost bit will always be 1 regardless of sign (or with flipped bits), unless x is zero
+  return (y >> 31) & 1;
 }
 /*
  * absVal - absolute value of x
