@@ -13,3 +13,14 @@ X howManyBits
 X isNonZero
 X absVal
 X isPower2
+
+int y = 0xFF << n;
+int z = x + ~0;
+int a = 0x55;
+int b = 0x33;
+int c = 0x0F;
+int d = 0xFF | (0xFF << 16);
+int twos_a = x & b;
+int fours_a = x & c;
+int eights_a = x & d;
+int halves_a = x & hlf;
