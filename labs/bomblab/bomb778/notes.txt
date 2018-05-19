@@ -1,0 +1,4 @@
+Phase 6:
+all numbers <= 6
+no repeat numbers
+numbers will pull a number from that index in a list, place in memory in a certain order
